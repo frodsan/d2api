@@ -6,9 +6,11 @@ const sources = {
   abilities: {
     dataURL: `${baseURL}/dota/scripts/npc/npc_abilities.json`,
     i18nURL: `${baseURL}/dota/resource/localization/abilities_english.json`,
+    serializer: (data, i18n) => new AbilitiesSerializer(data, i18n),
   },
   heroes: {
     dataURL: `${baseURL}/dota/scripts/npc/npc_heroes.json`,
+    serializer: (data) => new HeroesSerializer(data),
   }
 }
 
@@ -32,8 +34,7 @@ module.exports.GetSource = async (req, res) => {
     const responses = await Promise.all(promises)
     const data = await responses[0].json()
     const i18n = responses[1] && await responses[1].json()
-    const body = newSerializer(type, data, i18n).serialize()
-
+    const body = source.serializer(data, i18n).serialize()
 
     if (req.query.pretty) {
       res.header("Content-Type", "application/json")
@@ -43,14 +44,6 @@ module.exports.GetSource = async (req, res) => {
     }
   } catch(e) {
     res.status(500).json({ error: `${e.name}: ${e.message}` })
-  }
-}
-
-const newSerializer = (type, data, i18n) => {
-  if (type == "abilities") {
-    return new AbilitiesSerializer(data, i18n)
-  } else {
-    return new HeroesSerializer(data, i18n)
   }
 }
 
@@ -87,8 +80,6 @@ const toPositiveNumericSet = (str) => {
 }
 
 const formatDescription = (description, attributes) => {
-  if (!description) return undefined
-
   let desc = description
 
   if (attributes) {
@@ -168,7 +159,7 @@ class AbilitiesSerializer {
       const description = this.getString(key, "Description")
       const attributes = a.AbilitySpecial && toObject(a.AbilitySpecial)
 
-      ability.description = formatDescription(description, attributes)
+      ability.description = description && formatDescription(description, attributes)
       ability.notes = this.getNotes(key)
       ability.lore = this.getString(key, "Lore")
       ability.team_target = this.teamTargets[a.AbilityUnitTargetTeam]
@@ -182,8 +173,8 @@ class AbilitiesSerializer {
       ability.damage = a.AbilityDamage && toPositiveNumericSet(a.AbilityDamage)
       ability.mana_cost = a.AbilityManaCost && toNumericSet(a.AbilityManaCost)
       ability.cooldown = a.AbilityCooldown && toNumericSet(a.AbilityCooldown)
-      ability.has_scepter_upgrade = a.HasScepterUpgrade === "1" ? true : undefined
-      ability.is_granted_by_scepter = a.IsGrantedByScepter === "1" ? true : undefined
+      ability.has_scepter_upgrade = a.HasScepterUpgrade === "1"
+      ability.is_granted_by_scepter = a.IsGrantedByScepter === "1"
       ability.custom_attributes = attributes && formatCustomAttributes(attributes, this.strings, key)
 
       return ability
