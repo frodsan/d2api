@@ -11,7 +11,12 @@ const sources = {
   heroes: {
     dataURL: `${baseURL}/dota/scripts/npc/npc_heroes.json`,
     serializer: (data) => new HeroesSerializer(data),
-  }
+  },
+  items: {
+    dataURL: `${baseURL}/dota/scripts/npc/items.json`,
+    i18nURL: `${baseURL}/dota/resource/dota_english.json`,
+    serializer: (data, i18n) => new ItemsSerializer(data, i18n),
+  },
 }
 
 module.exports.GetSource = async (req, res) => {
@@ -73,10 +78,6 @@ const toObject = (obj) => {
 
 const toNumericSet = (str) => {
   return str.split(" ").map(Number).filter((v, i, arr) => arr.indexOf(v) === i)
-}
-
-const toPositiveNumericSet = (str) => {
-  return toNumericSet(str).filter(n => n > 0)
 }
 
 const formatDescription = (description, attributes) => {
@@ -144,12 +145,12 @@ class AbilitiesSerializer {
 
   serialize() {
     return this.keys.map((key) => {
-      const a = this.abilities[key]
+      const raw = this.abilities[key]
       const ability = {
-        id: Number(a.ID),
+        id: Number(raw.ID),
         key: key,
         name: stripExtraWhitespace(this.getString(key)),
-        type: this.abilityTypes[a.AbilityType],
+        type: this.abilityTypes[raw.AbilityType],
       }
 
       if (ability.type === "talent") {
@@ -157,24 +158,24 @@ class AbilitiesSerializer {
       }
 
       const description = this.getString(key, "Description")
-      const attributes = a.AbilitySpecial && toObject(a.AbilitySpecial)
+      const attributes = raw.AbilitySpecial && toObject(raw.AbilitySpecial)
 
       ability.description = description && formatDescription(description, attributes)
       ability.notes = this.getNotes(key)
       ability.lore = this.getString(key, "Lore")
-      ability.team_target = this.teamTargets[a.AbilityUnitTargetTeam]
-      ability.unit_targets = a.AbilityUnitTargetType && this.getUnitTargets(a.AbilityUnitTargetType)
-      ability.damage_type = this.damageTypes[a.AbilityUnitDamageType]
-      ability.pierces_spell_immunity = this.spellImmunityTypes[a.SpellImmunityType]
-      ability.cast_range = a.AbilityCastRange && toPositiveNumericSet(a.AbilityCastRange)
-      ability.cast_point = a.AbilityCastPoint && toPositiveNumericSet(a.AbilityCastPoint)
-      ability.channel_time = a.AbilityChannelTime && toPositiveNumericSet(a.AbilityChannelTime)
-      ability.duration = a.AbilityDuration && toPositiveNumericSet(a.AbilityDuration)
-      ability.damage = a.AbilityDamage && toPositiveNumericSet(a.AbilityDamage)
-      ability.mana_cost = a.AbilityManaCost && toNumericSet(a.AbilityManaCost)
-      ability.cooldown = a.AbilityCooldown && toNumericSet(a.AbilityCooldown)
-      ability.has_scepter_upgrade = a.HasScepterUpgrade === "1"
-      ability.is_granted_by_scepter = a.IsGrantedByScepter === "1"
+      ability.team_target = this.teamTargets[raw.AbilityUnitTargetTeam]
+      ability.unit_targets = raw.AbilityUnitTargetType && this.getUnitTargets(raw.AbilityUnitTargetType)
+      ability.damage_type = this.damageTypes[raw.AbilityUnitDamageType]
+      ability.pierces_spell_immunity = this.spellImmunityTypes[raw.SpellImmunityType]
+      ability.cast_range = raw.AbilityCastRange && toNumericSet(raw.AbilityCastRange)
+      ability.cast_point = raw.AbilityCastPoint && toNumericSet(raw.AbilityCastPoint)
+      ability.channel_time = raw.AbilityChannelTime && toNumericSet(raw.AbilityChannelTime)
+      ability.duration = raw.AbilityDuration && toNumericSet(raw.AbilityDuration)
+      ability.damage = raw.AbilityDamage && toNumericSet(raw.AbilityDamage)
+      ability.cooldown = raw.AbilityCooldown && toNumericSet(raw.AbilityCooldown)
+      ability.mana_cost = raw.AbilityManaCost && toNumericSet(raw.AbilityManaCost)
+      ability.has_scepter_upgrade = raw.HasScepterUpgrade === "1"
+      ability.is_granted_by_scepter = raw.IsGrantedByScepter === "1"
       ability.custom_attributes = attributes && formatCustomAttributes(attributes, this.strings, key)
 
       return ability
@@ -207,8 +208,9 @@ class AbilitiesSerializer {
   getNotes(key) {
     const notes = []
 
-    for(let i = 0; this.getString(key, `Note${i}`); i++)
+    for(let i = 0; this.getString(key, `Note${i}`); i++) {
       notes.push(this.getString(key, `Note${i}`))
+    }
 
     return notes
   }
@@ -273,34 +275,34 @@ class HeroesSerializer {
 
   serialize() {
     return this.keys.map((key) => {
-      const h = Object.assign({}, this.baseHero, this.heroes[key])
+      const raw = Object.assign({}, this.baseHero, this.heroes[key])
 
       return {
-        id: Number(h.HeroID),
+        id: Number(raw.HeroID),
         key: key,
-        name: h.workshop_guide_name,
-        roles: h.Role.split(",").map(r => r.toLowerCase()),
-        complexity: Number(h.Complexity),
-        primary_attribute: this.primaryAttributes[h.AttributePrimary],
-        base_str: Number(h.AttributeBaseStrength),
-        base_agi : Number(h.AttributeBaseAgility),
-        base_int : Number(h.AttributeBaseIntelligence),
-        str_gain : Number(h.AttributeStrengthGain),
-        agi_gain : Number(h.AttributeAgilityGain),
-        int_gain : Number(h.AttributeIntelligenceGain),
-        base_health : Number(h.StatusHealth),
-        base_mana : Number(h.StatusMana),
-        base_health_regen : Number(h.StatusHealthRegen),
-        base_mana_regen : Number(h.StatusManaRegen),
-        attack_type: this.attackTypes[h.AttackCapabilities],
-        attack_range: Number(h.AttackRange),
-        attack_rate: Number(h.AttackRate),
-        base_attack_min: Number(h.AttackDamageMin),
-        base_attack_max: Number(h.AttackDamageMax),
-        base_armor: Number(h.ArmorPhysical),
-        base_magical_resistance: Number(h.MagicalResistance),
-        movement_speed: Number(h.MovementSpeed),
-        movement_turn_rate: Number(h.MovementTurnRate),
+        name: raw.workshop_guide_name,
+        roles: raw.Role.split(",").map(r => r.toLowerCase()),
+        complexity: Number(raw.Complexity),
+        primary_attribute: this.primaryAttributes[raw.AttributePrimary],
+        base_str: Number(raw.AttributeBaseStrength),
+        base_agi : Number(raw.AttributeBaseAgility),
+        base_int : Number(raw.AttributeBaseIntelligence),
+        str_gain : Number(raw.AttributeStrengthGain),
+        agi_gain : Number(raw.AttributeAgilityGain),
+        int_gain : Number(raw.AttributeIntelligenceGain),
+        base_health : Number(raw.StatusHealth),
+        base_mana : Number(raw.StatusMana),
+        base_health_regen : Number(raw.StatusHealthRegen),
+        base_mana_regen : Number(raw.StatusManaRegen),
+        attack_type: this.attackTypes[raw.AttackCapabilities],
+        attack_range: Number(raw.AttackRange),
+        attack_rate: Number(raw.AttackRate),
+        base_attack_min: Number(raw.AttackDamageMin),
+        base_attack_max: Number(raw.AttackDamageMax),
+        base_armor: Number(raw.ArmorPhysical),
+        base_magical_resistance: Number(raw.MagicalResistance),
+        movement_speed: Number(raw.MovementSpeed),
+        movement_turn_rate: Number(raw.MovementTurnRate),
       }
     }).sort((a, b) => a.id - b.id)
   }
@@ -338,5 +340,75 @@ class HeroesSerializer {
       DOTA_UNIT_CAP_MELEE_ATTACK: "melee",
       DOTA_UNIT_CAP_RANGED_ATTACK: "ranged",
     }
+  }
+}
+
+class ItemsSerializer {
+  constructor(data, i18n) {
+    this.data = data
+    this.strings = fixStringsCase(i18n.lang.Tokens)
+  }
+
+  serialize() {
+    return this.keys.map((key) => {
+      const raw = this.items[key]
+
+      const description = this.getString(key, "Description")
+      const description_header = description && this.getDescriptionHeader(description)
+      const attributes = raw.AbilitySpecial && toObject(raw.AbilitySpecial)
+
+      return {
+        id: Number(raw.ID),
+        key: key,
+        description: description && this.getDescription(description, description_header, attributes),
+        description_header: description_header,
+        name: stripExtraWhitespace(this.getString(key)),
+        notes: this.getNotes(key),
+        lore: this.getString(key, "Lore"),
+        cost: raw.ItemCost && parseInt(raw.ItemCost, 10),
+        home_shop: raw.SideShop !== "1",
+        side_shop: raw.SideShop === "1",
+        secret_shop: raw.SecretShop === "1",
+        cooldown: raw.AbilityCooldown && Number(raw.AbilityCooldown),
+        mana_cost: raw.AbilityManaCost && Number(raw.AbilityManaCost),
+      }
+    }).sort((a, b) => a.id - b.id)
+  }
+
+  get keys() {
+    return Object.keys(this.items).filter(key => !this.ignoredKeys.includes(key))
+  }
+
+  get items() {
+    return this.data.DOTAAbilities
+  }
+
+  get ignoredKeys() {
+    return Object.keys(this.items).filter((key) => {
+      key.startsWith("item_recipe") && this.items[key].ItemCost === "0"
+    }).concat("Version")
+  }
+
+  getString(key, suffix = "") {
+    return this.strings[`DOTA_Tooltip_ability_${key}${ suffix && `_${suffix}`}`]
+  }
+
+  getDescription(description, header, attributes) {
+    return formatDescription(description.replace(header, ""), attributes)
+  }
+
+  getDescriptionHeader(description) {
+    const match = description.match(/<h1>(.*?)<\/h1>/)
+    return match ? match[1] : undefined
+  }
+
+  getNotes(key) {
+    const notes = []
+
+    for(let i = 0; this.getString(key, `Note${i}`); i++) {
+      notes.push(this.getString(key, `Note${i}`))
+    }
+
+    return notes
   }
 }
