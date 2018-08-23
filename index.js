@@ -371,6 +371,8 @@ class ItemsSerializer {
         secret_shop: raw.SecretShop === "1",
         cooldown: raw.AbilityCooldown && Number(raw.AbilityCooldown),
         mana_cost: raw.AbilityManaCost && Number(raw.AbilityManaCost),
+        custom_attributes: attributes && formatCustomAttributes(attributes, this.strings, key),
+        requirements: raw.ItemRequirements ? this.getRequirements(raw.ItemRequirements) : undefined
       }
     }).sort((a, b) => a.id - b.id)
   }
@@ -410,5 +412,9 @@ class ItemsSerializer {
     }
 
     return notes
+  }
+
+  getRequirements(requirements) {
+    return requirements.map(r => r.split(";"))
   }
 }
