@@ -80,29 +80,29 @@ const toNumericSet = (str) => {
   return str.split(" ").map(Number).filter((v, i, arr) => arr.indexOf(v) === i)
 }
 
-const formatDescription = (description, attributes) => {
-  let desc = description
-
-  if (attributes) {
-    desc = desc.replace(/%([^% ]*)%/g, (_, name) => {
-      if (name === "") {
-        return "%"
-      }
-
-      let attr = attributes.find(a => name in a)
-
-      if (attr) {
-        return attr[name]
-      } else {
-        return name
-      }
-    })
-  }
-
-  return desc
-           .split(/(?:\\n|<br>)+/) // Split by newline tags.
+const formatDescription = (description) => {
+  return description
+           .split(/(?:\\n|<br>)/) // Split by newline tags.
            .map(stripHTMLTags)
            .map(stripExtraWhitespace)
+}
+
+const replaceAttributes = (description, attributes) => {
+  if (!attributes) return description
+
+  return description.replace(/%([^% ]*)%/g, (_, name) => {
+    if (name === "") {
+      return "%"
+    }
+
+    let attr = attributes.find(a => name in a)
+
+    if (attr) {
+      return attr[name]
+    } else {
+      return name
+    }
+  })
 }
 
 const formatCustomAttributes = (attributes, strings, ability_key) => {
@@ -160,7 +160,7 @@ class AbilitiesSerializer {
       const description = this.getString(key, "Description")
       const attributes = raw.AbilitySpecial && toObject(raw.AbilitySpecial)
 
-      ability.description = description && formatDescription(description, attributes)
+      ability.description = description && this.getDescription(description, attributes)
       ability.notes = this.getNotes(key)
       ability.lore = this.getString(key, "Lore")
       ability.team_target = this.teamTargets[raw.AbilityUnitTargetTeam]
@@ -203,6 +203,10 @@ class AbilitiesSerializer {
 
   getString(key, suffix = "") {
     return this.strings[`DOTA_Tooltip_ability_${key}${ suffix && `_${suffix}`}`]
+  }
+
+  getDescription(description, attributes) {
+    return formatDescription(replaceAttributes(description, attributes))
   }
 
   getNotes(key) {
@@ -350,21 +354,20 @@ class ItemsSerializer {
   }
 
   serialize() {
-    return this.keys.map((key) => {
+    const items = this.keys.map((key) => {
       const raw = this.items[key]
 
       const description = this.getString(key, "Description")
-      const description_header = description && this.getDescriptionHeader(description)
       const attributes = raw.AbilitySpecial && toObject(raw.AbilitySpecial)
 
       return {
         id: Number(raw.ID),
         key: key,
-        description: description && this.getDescription(description, description_header, attributes),
-        description_header: description_header,
-        name: stripExtraWhitespace(this.getString(key)),
+        name: stripExtraWhitespace(this.getName(key, raw.ItemBaseLevel)),
+        description: description && this.getDescription(description, attributes),
         notes: this.getNotes(key),
         lore: this.getString(key, "Lore"),
+        recipe: key.startsWith("item_recipe"),
         cost: raw.ItemCost && parseInt(raw.ItemCost, 10),
         home_shop: raw.SideShop !== "1",
         side_shop: raw.SideShop === "1",
@@ -372,9 +375,18 @@ class ItemsSerializer {
         cooldown: raw.AbilityCooldown && Number(raw.AbilityCooldown),
         mana_cost: raw.AbilityManaCost && Number(raw.AbilityManaCost),
         custom_attributes: attributes && formatCustomAttributes(attributes, this.strings, key),
-        requirements: raw.ItemRequirements ? this.getRequirements(raw.ItemRequirements) : undefined
+        requirements: this.getRequirements(key),
       }
     }).sort((a, b) => a.id - b.id)
+
+    items.forEach((item) => {
+      if (item.requirements.length > 1) {
+        console.log(item.key)
+      }
+      item.upgrades = this.getUpgrades(items, item)
+    })
+
+    return items
   }
 
   get keys() {
@@ -387,21 +399,42 @@ class ItemsSerializer {
 
   get ignoredKeys() {
     return Object.keys(this.items).filter((key) => {
-      key.startsWith("item_recipe") && this.items[key].ItemCost === "0"
+      return key.startsWith("item_recipe") && this.items[key].ItemCost === "0"
     }).concat("Version")
+  }
+
+  getName(key, level) {
+    const name = this.getString(key)
+
+    return level ? `${name} (level ${level})` : name
   }
 
   getString(key, suffix = "") {
     return this.strings[`DOTA_Tooltip_ability_${key}${ suffix && `_${suffix}`}`]
   }
 
-  getDescription(description, header, attributes) {
-    return formatDescription(description.replace(header, ""), attributes)
+  getDescription(description, attributes) {
+    return replaceAttributes(description, attributes)
+             .split(/\\n/) // Split by newline tags.
+             .map(this.formatAttribute)
   }
 
-  getDescriptionHeader(description) {
-    const match = description.match(/<h1>(.*?)<\/h1>/)
-    return match ? match[1] : undefined
+  formatAttribute(attribute) {
+    if (!attribute.includes("<h1>")) {
+      return {
+        type: "hint",
+        body: formatDescription(attribute),
+      }
+    } else {
+      const regExp = /<h1>\s*(.*)\s*:\s*(.*)\s*<\/h1>\s*([\s\S]*)/gi
+      const [_, type, header, body] = regExp.exec(attribute)
+
+      return {
+        type: type.toLowerCase(),
+        header: header,
+        body: formatDescription(body),
+      }
+    }
   }
 
   getNotes(key) {
@@ -414,7 +447,37 @@ class ItemsSerializer {
     return notes
   }
 
-  getRequirements(requirements) {
-    return requirements.map(r => r.split(";"))
+  getRequirements(key) {
+    let k = key
+
+    if (!k.startsWith("item_recipe")) {
+      k = k.replace("item_", "item_recipe_")
+    }
+
+    const item = this.items[k]
+
+    if (!item || !item.ItemRequirements) {
+      return []
+    }
+
+    const requirements = item.ItemRequirements.map(r => r.split(";"))
+
+    if (!k.startsWith("item_recipe") && item.ItemCost !== "0") {
+      requirements.forEach(rs => rs.push(k))
+    }
+
+    return requirements
+  }
+
+  getUpgrades(items, item) {
+    const upgrades = []
+
+    items.filter(i => !i.recipe).forEach((i) => {
+      if (i.requirements.some(r => r.includes(item.key))) {
+        upgrades.push(i.key)
+      }
+    })
+
+    return upgrades
   }
 }
