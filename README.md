@@ -4,14 +4,21 @@
 
 ## Usage
 
-To try it in development, run:
+To try it in development, fire up the server with:
 
 ```
 $ npm run server # or npm run s
 ```
 
-This will fire up a server running on <http://localhost:1437>. In order to get a JSON response, you need to request the `/GetSource` resource, like:
+To start getting data, make a request to:
 
 ```
-http://localhost:1437/GetSource?type=<abilities|heroes|items>
+GET http://localhost:1437/GetSource?type=<abilities|heroes|items>
 ```
+
+### Parameters
+
+| Name | Required | Description
+| ---- | -------- | -----------
+| type | ✓ | Can be one of: `abilities`, `heroes`, or `items`.
+| pretty | | Prettify JSON response.
