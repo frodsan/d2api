@@ -73,3 +73,7 @@ $ gcloud beta functions deploy GetSource \
     --region <your-favorite-region>
 Deploying function (may take a while - up to 2 minutes)...
 ```
+
+## License
+
+Released under MIT License, check LICENSE file for details.
