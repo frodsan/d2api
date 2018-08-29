@@ -2,6 +2,10 @@
 
 [Google Cloud Function](https://cloud.google.com/functions/) that serves Dota 2 ability, hero and item data in a JSON format. It gets the data from the Steam source files through: [dotabuff/d2vpkr](https://github.com/dotabuff/d2vpkr).
 
+## Requirements
+
+- Node.js 8+
+
 ## Usage
 
 To try it in development, fire up the server with:
@@ -56,4 +60,15 @@ $ curl http://localhost:1437/GetSource?type=heroes | jq -s '.[0][0]'
   "movement_speed": 310,
   "movement_turn_rate": 0.5
 }
+```
+
+## Deployment
+
+Use the `gcloud` utility, like:
+
+```
+$ gcloud beta functions deploy GetSource \
+    --trigger-http \
+    --runtime nodejs8
+    --region <your-favorite-region>
 ```
