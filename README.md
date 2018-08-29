@@ -69,6 +69,7 @@ Use the `gcloud` utility, like:
 ```
 $ gcloud beta functions deploy GetSource \
     --trigger-http \
-    --runtime nodejs8
+    --runtime nodejs8 \
     --region <your-favorite-region>
+Deploying function (may take a while - up to 2 minutes)...
 ```
