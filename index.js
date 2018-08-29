@@ -82,7 +82,7 @@ const toNumericSet = (str) => {
 
 const formatDescription = (description) => {
   return description
-           .split(/(?:\\n|<br>)/) // Split by newline tags.
+           .split(/(?:\\n|<br>)/)
            .map(stripHTMLTags)
            .map(stripExtraWhitespace)
 }
@@ -380,9 +380,6 @@ class ItemsSerializer {
     }).sort((a, b) => a.id - b.id)
 
     items.forEach((item) => {
-      if (item.requirements.length > 1) {
-        console.log(item.key)
-      }
       item.upgrades = this.getUpgrades(items, item)
     })
 
@@ -415,7 +412,7 @@ class ItemsSerializer {
 
   getDescription(description, attributes) {
     return replaceAttributes(description, attributes)
-             .split(/\\n/) // Split by newline tags.
+             .split(/\\n/)
              .map(this.formatAttribute)
   }
 
@@ -456,14 +453,14 @@ class ItemsSerializer {
 
     const item = this.items[k]
 
-    if (!item || !item.ItemRequirements) {
+    if (!item || !item.ItemRequirements || !item.ItemRequirements.length) {
       return []
     }
 
-    const requirements = item.ItemRequirements.map(r => r.split(";"))
+    const requirements = item.ItemRequirements[0].split(";")
 
     if (!k.startsWith("item_recipe") && item.ItemCost !== "0") {
-      requirements.forEach(rs => rs.push(k))
+      requirements.push(k)
     }
 
     return requirements
@@ -473,7 +470,7 @@ class ItemsSerializer {
     const upgrades = []
 
     items.filter(i => !i.recipe).forEach((i) => {
-      if (i.requirements.some(r => r.includes(item.key))) {
+      if (i.requirements.includes(item.key)) {
         upgrades.push(i.key)
       }
     })
