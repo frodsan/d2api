@@ -13,10 +13,8 @@ $ npm run server # or npm run s
 To start getting data, make a request to:
 
 ```
-GET http://localhost:1437/GetSource?type=<abilities|heroes|items>
+GET http://localhost:1437/GetSource?type=<abilities|heroes|items>&pretty=[1]
 ```
-
-### Parameters
 
 | Name | Required | Description
 | ---- | -------- | -----------
