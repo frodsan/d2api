@@ -129,7 +129,7 @@ const formatCustomAttributes = (attributes, strings, ability_key) => {
     return {
       key: key,
       value: attr[key],
-      scepter: key.endsWith("_scepter") || undefined,
+      scepter: key.endsWith("_scepter"),
       header: stripHTMLTags(header).replace(/\\n/g, ""),
       prefix: prefix,
       suffix: suffix,

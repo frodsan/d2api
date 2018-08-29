@@ -16,9 +16,11 @@ Object.keys(gfunc).forEach((fn) => {
 })
 
 const shutdown = () => {
+  const timeout = 5 * 1000 // 5 seconds
+
   server.close(() => process.exit())
 
-  setTimeout(() => process.exit(), 10*1000)
+  setTimeout(() => process.exit(), timeout)
 }
 
 process.on("SIGINT", shutdown)
