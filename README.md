@@ -16,7 +16,7 @@ To start getting data, make a request to:
 GET http://localhost:1437/GetSource?type=<abilities|heroes|items>&pretty=[1]
 ```
 
-| Name | Required | Description
+| Query param | Required | Description
 | ---- | -------- | -----------
 | type | ✓ | Can be one of: `abilities`, `heroes`, or `items`.
 | pretty | | Prettify JSON response.
