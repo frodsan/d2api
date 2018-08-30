@@ -74,7 +74,7 @@ $ gcloud beta functions deploy GetSource \
 Deploying function (may take a while - up to 2 minutes)...
 ```
 
-The function can be triggered at https://[region]-[project_id].cloudfunctions.net/GetSource.
+The function can be triggered at <https://[region]-[project_id].cloudfunctions.net/GetSource>.
 
 ## License
 
