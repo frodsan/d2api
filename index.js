@@ -1,6 +1,8 @@
+const crypto = require("crypto")
 const fetch = require("node-fetch")
 
 const baseURL = process.env.BASE_URL || "https://raw.githubusercontent.com/dotabuff/d2vpkr/master"
+const secretToken = process.env.SECRET_TOKEN
 
 const sources = {
   abilities: {
@@ -20,17 +22,24 @@ const sources = {
 }
 
 module.exports.GetSource = async (req, res) => {
+  const token = req.query.token
+
+  if (secretToken && !secureCompare(secretToken, String(token))) {
+    res.status(401).json({ error: "Unauthorized: Token is invalid" })
+    return
+  }
+
   const type = req.query.type
 
   if (!type) {
-    res.status(400).json({ error: "Missing `type` query parameter" })
+    res.status(400).json({ error: "Bad Request: Missing `type` query parameter" })
     return
   }
 
   const source = sources[type]
 
   if (!source) {
-    res.status(400).json({ error: `Source '${type}' does not exist` })
+    res.status(400).json({ error: `Bad Request: Source '${type}' does not exist` })
     return
   }
 
@@ -50,6 +59,17 @@ module.exports.GetSource = async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: `${e.name}: ${e.message}` })
   }
+}
+
+const secureCompare = (a, b) => {
+  const maxLen = Math.max(Buffer.byteLength(a), Buffer.byteLength(b))
+  const bufA = Buffer.alloc(maxLen, 0, 'utf-8')
+  const bufB = Buffer.alloc(maxLen, 0, 'utf-8')
+
+  bufA.write(a)
+  bufB.write(b)
+
+  return crypto.timingSafeEqual(bufA, bufB)
 }
 
 const fixStringsCase = (obj) => {
