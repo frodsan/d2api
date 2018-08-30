@@ -327,6 +327,8 @@ class HeroesSerializer {
         base_magical_resistance: Number(raw.MagicalResistance),
         movement_speed: Number(raw.MovementSpeed),
         movement_turn_rate: Number(raw.MovementTurnRate),
+        abilities: this.getAbilities(raw),
+        talents: this.getTalents(raw),
       }
     }).sort((a, b) => a.id - b.id)
   }
@@ -364,6 +366,14 @@ class HeroesSerializer {
       DOTA_UNIT_CAP_MELEE_ATTACK: "melee",
       DOTA_UNIT_CAP_RANGED_ATTACK: "ranged",
     }
+  }
+
+  getAbilities(raw) {
+    return Object.keys(raw).filter(k => k.match(/Ability([1-9]$)/)).map(k => raw[k]).filter(a => a)
+  }
+
+  getTalents(raw) {
+    return Object.keys(raw).filter(k => k.match(/Ability([1-9]\d+$)/)).map(k => raw[k]).filter(a => a)
   }
 }
 
