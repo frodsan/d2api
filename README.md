@@ -58,7 +58,25 @@ $ curl http://localhost:1437/GetSource?type=heroes | jq -s '.[0][0]'
   "base_armor": -1,
   "base_magical_resistance": 25,
   "movement_speed": 310,
-  "movement_turn_rate": 0.5
+  "movement_turn_rate": 0.5,
+  "abilities": [
+    "antimage_mana_break",
+    "antimage_blink",
+    "antimage_spell_shield",
+    "generic_hidden",
+    "generic_hidden",
+    "antimage_mana_void"
+  ],
+  "talents": [
+    "special_bonus_strength_10",
+    "special_bonus_attack_speed_20",
+    "special_bonus_unique_antimage_3",
+    "special_bonus_agility_15",
+    "special_bonus_unique_antimage_5",
+    "special_bonus_unique_antimage",
+    "special_bonus_unique_antimage_4",
+    "special_bonus_unique_antimage_2"
+  ]
 }
 ```
 
