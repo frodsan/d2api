@@ -240,7 +240,7 @@ class AbilitiesSerializer {
   }
 
   getUnitTargets(targets) {
-    return targets.split(" | ").map(t => this.teamTargets[t]).filter(t => t)
+    return targets.split(" | ").map(t => this.unitTargets[t]).filter(t => t)
   }
 
   get abilityTypes() {
